@@ -16,5 +16,4 @@ def part2():
     for left, right in res:
         l1.append(left)
         l2[right] += 1
-
     print(sum(x * l2[x] for x in l1))
