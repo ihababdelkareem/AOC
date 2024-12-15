@@ -13,6 +13,21 @@ def dfs1(i,j,visited, grid):
                 perimeter += n_p
     return area, perimeter
 
+
+"""
+Number of corners equals number of sides.
+
+Two types of corners (inner and outer):
+
+Inner (Where A is the block):
+
+AA
+AX
+
+Outer (Where A is the block):
+XX
+XA
+"""
 def dfs2(i,j,visited, grid):
     visited.add((i,j))
     area, corners = 1,0
