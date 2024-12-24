@@ -1,3 +1,5 @@
+import keyboard, time, os
+
 LOOKUP = {'^':(-1,0),'v':(1,0),'>':(0,1),'<':(0,-1)}
 
 def input_():
@@ -52,12 +54,17 @@ def apply_part2(robot_i,robot_j,grid,instruction):
         return robot_i + dx, robot_j + dy
     return robot_i, robot_j
 
+def print_grid(grid):
+    for row in grid:
+        print(''.join(row))
+
 def transform_grid(grid):
     mapper = {'#':'##','O':'[]','.':'..','@':'@.'}
     new_grid = []
     for row in grid:
         new_grid.append(list(''.join(list(map(lambda cell: mapper[cell], row)))))
     return new_grid
+
 
 def part1():
     grid, instructions = input_()
@@ -73,3 +80,24 @@ def part2():
     for instruction in instructions:
         x, y = apply_part2(x,y,grid,instruction)
     return sum(i * 100 + j for i in range(len(grid)) for j in range(len(grid[0])) if grid[i][j] == '[')
+
+def interactive():
+    instruction_map = {'up':'^','down':'v','left':'<','right':'>'}
+    grid, _ = input_()
+    grid = transform_grid(grid)
+    x, y = [(i,j) for i in range(len(grid)) for j in range(len(grid[0])) if grid[i][j] == '@'][0]
+    print_grid(grid)
+    while True:
+        instruction = ''
+        if keyboard.is_pressed("up"):
+            instruction = "up"
+        elif keyboard.is_pressed("down"):
+            instruction = "down"
+        elif keyboard.is_pressed("left"):
+            instruction = "left"
+        elif keyboard.is_pressed("right"):
+            instruction = "right"
+        if instruction in instruction_map:
+            os.system('clear')
+            x, y = apply_part2(x,y,grid,instruction_map[instruction])
+            print_grid(grid)
