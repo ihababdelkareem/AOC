@@ -1,76 +1,103 @@
-from collections import defaultdict
-KEYPAD = {'7':(0,0),'8':(0,1),'9':(0,2),'4':(1,0),'5':(1,1),'6':(1,2),'1':(2,0),'2':(2,1),'3':(2,2),'': (3,0),'0':(3,1),'A':(3,2)}
-ARROWS = {'': (0,0), '^':(0,1),'A':(0,2),'<':(1,0),'v':(1,1),'>':(1,2)}
-PATH_CACHE = defaultdict(lambda: defaultdict(list))
-DFS_CACHE = dict()
+import keyboard, time, os
 
-def input():
-    return open('input1.txt').read().splitlines()
+LOOKUP = {'^':(-1,0),'v':(1,0),'>':(0,1),'<':(0,-1)}
 
-def build_path_cache(map):
-    for key in map:
-        for other_key in map:
-            PATH_CACHE[key][other_key] = generate_paths(key,other_key,map)
- 
-def generate_paths(key_from, key_to, map):
-    def backtrack(current,target,buffer):
-        if current == target:
-            res.append(buffer)
+def input_():
+    lines = open('input1.txt').read().splitlines()
+    split = False
+    instructions = ''
+    grid = []
+    for line in lines:
+        if line == '':
+            split = True
+        elif not split:
+            grid.append(list(line))
         else:
-            current_x, current_y = current
-            target_x, target_y = target
-            avoid_x, avoid_y = map['']
-            if current_x > target_x:
-                suffix = ''
-                while current_x > target_x and (current_x - 1, current_y) != (avoid_x, avoid_y):
-                    suffix += '^'
-                    current_x -= 1
-                if suffix:
-                    backtrack((current_x,current_y),target,buffer + suffix)
-            elif current_x < target_x:
-                suffix = ''
-                while current_x < target_x and (current_x + 1, current_y) != (avoid_x, avoid_y):
-                    suffix += 'v'
-                    current_x += 1
-                if suffix:
-                    backtrack((current_x,current_y),target,buffer + suffix)
-            current_x, current_y = current
-            if current_y > target_y:
-                suffix = ''
-                while current_y > target_y and (current_x, current_y - 1) != (avoid_x, avoid_y):
-                    suffix += '<'
-                    current_y -= 1
-                if suffix:
-                    backtrack((current_x,current_y),target,buffer + suffix)
-            elif current_y < target_y:
-                suffix = ''
-                while current_y < target_y and (current_x, current_y + 1) != (avoid_x, avoid_y):
-                    suffix += '>'
-                    current_y += 1
-                if suffix:
-                    backtrack((current_x,current_y),target,buffer + suffix)
-    res = []
-    backtrack(map[key_from],map[key_to],'')
-    return res
+            instructions += line
+    return grid, instructions
 
-def dfs(from_, to_, depth, target_depth, cache):
-    if depth == target_depth:
-        return 1
-    if (from_, to_, depth) in cache:
-        return cache[(from_, to_, depth)]
-    paths_between_arrows = PATH_CACHE[from_][to_]
-    res = float('inf')
-    for path_between_arrows in paths_between_arrows:
-        path_between_arrows = 'A' + path_between_arrows + 'A'
-        res = min(res, sum(dfs(path_between_arrows[i-1],path_between_arrows[i],depth + 1, target_depth, cache) for i in range(1, len(path_between_arrows))))
-    cache[(from_, to_, depth)] = res
-    return res
+def apply_part1(i,j,grid,instruction):
+    dx, dy = LOOKUP[instruction]
+    x,y = i + dx, j + dy
+    while grid[x][y] == 'O':
+        x += dx
+        y += dy
+    if grid[x][y] == '.':
+        while grid[x - dx][y - dy] != '@':
+            grid[x][y], grid[x - dx][y - dy] = grid[x - dx][y - dy], grid[x][y]
+            x,y = x - dx, y - dy
+        grid[x][y], grid[x - dx][y - dy] = grid[x - dx][y - dy], grid[x][y]
+        return x,y
+    else:
+        return i, j
 
-build_path_cache(KEYPAD)
-build_path_cache(ARROWS)
+def apply_part2(robot_i,robot_j,grid,instruction):
+    other_bracket_diff = {'[':1,']':-1}
+    def can_complete_move(x,y,depth):
+        if grid[x][y] == '.':
+            return True
+        if grid[x][y] == '#':
+            return False
+        cells_to_move.append((depth,x,y))
+        if dy != 0:
+            return can_complete_move(x, y + dy, depth + 1)
+        else:
+            up =  can_complete_move(x + dx, y,depth + 1) if (depth + 1, x + dx, y) not in cells_to_move else True
+            same = can_complete_move(x, y + other_bracket_diff[grid[x][y]], depth) if (depth, x, y + other_bracket_diff[grid[x][y]]) not in cells_to_move else True
+            return up and same
+    dx, dy = LOOKUP[instruction]
+    cells_to_move= [(-1,robot_i, robot_j)]
+    if (can_complete_move(robot_i + dx, robot_j + dy, 0)):
+        for _,x,y in reversed(sorted(cells_to_move)):
+            grid[x + dx][y + dy] = grid[x][y]
+            grid[x][y] = '.'
+        return robot_i + dx, robot_j + dy
+    return robot_i, robot_j
+
+def print_grid(grid):
+    for row in grid:
+        print(''.join(row))
+
+def transform_grid(grid):
+    mapper = {'#':'##','O':'[]','.':'..','@':'@.'}
+    new_grid = []
+    for row in grid:
+        new_grid.append(list(''.join(list(map(lambda cell: mapper[cell], row)))))
+    return new_grid
+
 
 def part1():
-    return sum(int(code[:-1]) * sum(dfs('A' if i == 0 else code[i-1],code[i],0,3,DFS_CACHE)for i in range(len(code))) for code in input())
+    grid, instructions = input_()
+    x, y = [(i,j) for i in range(len(grid)) for j in range(len(grid[0])) if grid[i][j] == '@'][0]
+    for instruction in instructions:
+        x, y = apply_part1(x,y,grid,instruction)
+    return sum(i * 100 + j for i in range(len(grid)) for j in range(len(grid[0])) if grid[i][j] == 'O')
 
 def part2():
-    return sum(int(code[:-1]) * sum(dfs('A' if i == 0 else code[i-1],code[i],0,26,DFS_CACHE)for i in range(len(code))) for code in input())
+    grid, instructions = input_()
+    grid = transform_grid(grid)
+    x, y = [(i,j) for i in range(len(grid)) for j in range(len(grid[0])) if grid[i][j] == '@'][0]
+    for instruction in instructions:
+        x, y = apply_part2(x,y,grid,instruction)
+    return sum(i * 100 + j for i in range(len(grid)) for j in range(len(grid[0])) if grid[i][j] == '[')
+
+def interactive():
+    instruction_map = {'up':'^','down':'v','left':'<','right':'>'}
+    grid, _ = input_()
+    grid = transform_grid(grid)
+    x, y = [(i,j) for i in range(len(grid)) for j in range(len(grid[0])) if grid[i][j] == '@'][0]
+    print_grid(grid)
+    while True:
+        instruction = ''
+        if keyboard.is_pressed("up"):
+            instruction = "up"
+        elif keyboard.is_pressed("down"):
+            instruction = "down"
+        elif keyboard.is_pressed("left"):
+            instruction = "left"
+        elif keyboard.is_pressed("right"):
+            instruction = "right"
+        if instruction in instruction_map:
+            os.system('clear')
+            x, y = apply_part2(x,y,grid,instruction_map[instruction])
+            print_grid(grid)
