@@ -3,10 +3,8 @@ KEYPAD = {'7':(0,0),'8':(0,1),'9':(0,2),'4':(1,0),'5':(1,1),'6':(1,2),'1':(2,0),
 ARROWS = {'': (0,0), '^':(0,1),'A':(0,2),'<':(1,0),'v':(1,1),'>':(1,2)}
 PATH_CACHE = defaultdict(lambda: defaultdict(list))
 DFS_CACHE = dict()
-
 def input():
     return open('input1.txt').read().splitlines()
-
 def build_path_cache(map):
     for key in map:
         for other_key in map:
@@ -52,7 +50,6 @@ def generate_paths(key_from, key_to, map):
     res = []
     backtrack(map[key_from],map[key_to],'')
     return res
-
 def dfs(from_, to_, depth, target_depth, cache):
     if depth == target_depth:
         return 1
@@ -65,12 +62,9 @@ def dfs(from_, to_, depth, target_depth, cache):
         res = min(res, sum(dfs(path_between_arrows[i-1],path_between_arrows[i],depth + 1, target_depth, cache) for i in range(1, len(path_between_arrows))))
     cache[(from_, to_, depth)] = res
     return res
-
 build_path_cache(KEYPAD)
 build_path_cache(ARROWS)
-
 def part1():
     return sum(int(code[:-1]) * sum(dfs('A' if i == 0 else code[i-1],code[i],0,3,DFS_CACHE)for i in range(len(code))) for code in input())
-
 def part2():
     return sum(int(code[:-1]) * sum(dfs('A' if i == 0 else code[i-1],code[i],0,26,DFS_CACHE)for i in range(len(code))) for code in input())
